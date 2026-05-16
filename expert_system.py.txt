@@ -1,0 +1,65 @@
+import json
+
+CROPS = ["wheat", "canola", "barley", "peas"]
+
+def load_rules():
+    with open("rules.json", "r") as f:
+        return json.load(f)
+
+def evaluate_rules(inputs):
+    rules = load_rules()
+
+    scores = {crop: 0 for crop in CROPS}
+    risks = {crop: [] for crop in CROPS}
+    global_flags = []
+
+    def check(condition):
+        for key, value in condition.items():
+            if "_eq" in key:
+                field = key.replace("_eq", "")
+                if inputs.get(field) != value:
+                    return False
+            elif "_lt" in key:
+                field = key.replace("_lt", "")
+                if inputs.get(field, 0) >= value:
+                    return False
+            elif "_gt" in key:
+                field = key.replace("_gt", "")
+                if inputs.get(field, 0) <= value:
+                    return False
+            elif "_between" in key:
+                field = key.replace("_between", "")
+                low, high = value
+                if not (low <= inputs.get(field, 0) <= high):
+                    return False
+            elif "_in" in key:
+                field = key.replace("_in", "")
+                if inputs.get(field) not in value:
+                    return False
+        return True
+
+    for block in rules["rule_blocks"]:
+        for rule in block["rules"]:
+            if check(rule["when"]):
+                effects = rule["then"]
+
+                for crop in CROPS:
+                    key = f"{crop}_score_add"
+                    if key in effects:
+                        scores[crop] += effects[key]
+
+                    risk_key = f"{crop}_risk_add"
+                    if risk_key in effects:
+                        risks[crop].append(effects[risk_key])
+
+                if "global_score_add" in effects:
+                    for crop in CROPS:
+                        scores[crop] += effects["global_score_add"]
+
+                if "global_flag_add" in effects:
+                    global_flags.append(effects["global_flag_add"])
+
+    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+    return ranked, risks, global_flags
+``

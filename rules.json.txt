@@ -1,0 +1,280 @@
+{
+  "meta": {
+    "name": "AI Crop Advisor - Full Integrated System",
+    "version": "2.0",
+    "crops": ["wheat", "canola", "barley", "peas"],
+    "note": "Educational decision-support system with explainable rules"
+  },
+
+  "scoring": {
+    "thresholds": {
+      "low_risk": 6,
+      "medium_risk": 3
+    }
+  },
+
+  "rule_blocks": [
+
+    {
+      "block": "base_soil",
+      "rules": [
+        {
+          "id": "GOOD_TEXTURE",
+          "when": { "soil_texture_in": ["loam", "clay"] },
+          "then": {
+            "wheat_score_add": 2,
+            "barley_score_add": 2,
+            "canola_score_add": 2,
+            "peas_score_add": 2
+          }
+        },
+        {
+          "id": "LOW_OM",
+          "when": { "organic_matter_lt": 2.0 },
+          "then": {
+            "global_score_add": -2,
+            "global_flag_add": "Low organic matter reduces fertility and water holding"
+          }
+        },
+        {
+          "id": "HIGH_OM",
+          "when": { "organic_matter_gte": 4.0 },
+          "then": { "global_score_add": 1 }
+        }
+      ]
+    },
+
+    {
+      "block": "region_logic",
+      "rules": [
+        {
+          "id": "DARK_BROWN_CEREALS",
+          "when": { "region_eq": "dark_brown" },
+          "then": {
+            "wheat_score_add": 2,
+            "barley_score_add": 2,
+            "peas_score_add": 2,
+            "canola_score_add": -1
+          }
+        },
+        {
+          "id": "BLACK_FERTILITY",
+          "when": { "region_eq": "black" },
+          "then": { "global_score_add": 1 }
+        },
+        {
+          "id": "BLACK_CANOLA_ADVANTAGE",
+          "when": { "region_eq": "black" },
+          "then": { "canola_score_add": 2 }
+        }
+      ]
+    },
+
+    {
+      "block": "moisture_weather",
+      "rules": [
+        {
+          "id": "LOW_RAIN",
+          "when": { "growing_season_rain_lt": 150 },
+          "then": {
+            "canola_score_add": -3,
+            "peas_score_add": 2,
+            "barley_score_add": 1,
+            "global_flag_add": "Low rainfall limits yield potential"
+          }
+        },
+        {
+          "id": "MODERATE_RAIN",
+          "when": { "growing_season_rain_between": [150, 300] },
+          "then": { "global_score_add": 1 }
+        },
+        {
+          "id": "HIGH_RAIN",
+          "when": { "growing_season_rain_gt": 300 },
+          "then": {
+            "canola_score_add": 2,
+            "peas_score_add": -1,
+            "peas_risk_add": "Excess moisture may reduce harvestability"
+          }
+        },
+        {
+          "id": "HIGH_TEMP",
+          "when": { "avg_temp_gt": 22 },
+          "then": {
+            "canola_score_add": -2,
+            "peas_score_add": -2,
+            "global_flag_add": "Heat stress risk"
+          }
+        }
+      ]
+    },
+
+    {
+      "block": "nutrients",
+      "rules": [
+
+        {
+          "id": "LOW_N",
+          "when": { "nitrogen_lt": 30 },
+          "then": {
+            "wheat_score_add": -2,
+            "barley_score_add": -1,
+            "canola_score_add": -2,
+            "peas_score_add": 2,
+            "global_flag_add": "Low nitrogen limits cereal and oilseed yield"
+          }
+        },
+        {
+          "id": "HIGH_N",
+          "when": { "nitrogen_gt": 80 },
+          "then": {
+            "wheat_score_add": 2,
+            "canola_score_add": 2,
+            "peas_score_add": -1,
+            "peas_risk_add": "High nitrogen may reduce nodulation"
+          }
+        },
+
+        {
+          "id": "LOW_P",
+          "when": { "phosphorus_lt": 15 },
+          "then": {
+            "peas_score_add": -2,
+            "canola_score_add": -2,
+            "wheat_score_add": -1,
+            "global_flag_add": "Low phosphorus limits early root growth"
+          }
+        },
+        {
+          "id": "OPTIMAL_P",
+          "when": { "phosphorus_between": [15, 30] },
+          "then": {
+            "peas_score_add": 1,
+            "canola_score_add": 1,
+            "wheat_score_add": 1
+          }
+        },
+
+        {
+          "id": "LOW_K",
+          "when": { "potassium_lt": 150 },
+          "then": {
+            "wheat_score_add": -1,
+            "barley_score_add": -1,
+            "canola_score_add": -2,
+            "global_flag_add": "Low potassium increases stress sensitivity"
+          }
+        },
+        {
+          "id": "HIGH_K",
+          "when": { "potassium_gt": 200 },
+          "then": { "global_score_add": 1 }
+        }
+      ]
+    },
+
+    {
+      "block": "rotation",
+      "rules": [
+        {
+          "id": "WHEAT_REPEAT",
+          "when": { "previous_crop_eq": "wheat" },
+          "then": {
+            "wheat_score_add": -1,
+            "wheat_risk_add": "Disease risk from continuous wheat"
+          }
+        },
+        {
+          "id": "CANOLA_REPEAT",
+          "when": { "previous_crop_eq": "canola" },
+          "then": {
+            "canola_score_add": -3,
+            "canola_risk_add": "High disease risk from tight rotation"
+          }
+        },
+        {
+          "id": "BARLEY_REPEAT",
+          "when": { "previous_crop_eq": "barley" },
+          "then": {
+            "barley_score_add": -1
+          }
+        },
+        {
+          "id": "PEAS_ROTATION",
+          "when": { "previous_crop_in": ["wheat", "barley"] },
+          "then": {
+            "peas_score_add": 2,
+            "peas_risk_add": "Improves soil nitrogen for rotation"
+          }
+        }
+      ]
+    },
+
+    {
+      "block": "pea_specific",
+      "rules": [
+        {
+          "id": "PEAS_DRYLAND_ADVANTAGE",
+          "when": { "moisture_regime_eq": "dryland" },
+          "then": { "peas_score_add": 2 }
+        },
+        {
+          "id": "PEAS_HIGH_OM_RISK",
+          "when": {
+            "organic_matter_gte": 5.0,
+            "region_eq": "black"
+          },
+          "then": {
+            "peas_score_add": -1,
+            "peas_risk_add": "Risk of lodging in high fertility"
+          }
+        }
+      ]
+    },
+
+    {
+      "block": "soil_ph",
+      "rules": [
+        {
+          "id": "LOW_PH",
+          "when": { "soil_ph_lt": 5.5 },
+          "then": {
+            "global_score_add": -2,
+            "global_flag_add": "Soil acidity limits nutrient availability"
+          }
+        },
+        {
+          "id": "HIGH_PH",
+          "when": { "soil_ph_gt": 8.0 },
+          "then": {
+            "canola_score_add": -2,
+            "global_flag_add": "High pH reduces nutrient availability"
+          }
+        }
+      ]
+    },
+
+    {
+      "block": "safety",
+      "rules": [
+        {
+          "id": "LOW_CONFIDENCE",
+          "when": { "top_score_lte": 2 },
+          "then": {
+            "escalate": true,
+            "escalation_reason": "Low suitability across all crops"
+          }
+        },
+        {
+          "id": "MULTIPLE_ISSUES",
+          "when": { "global_flags_gte": 2 },
+          "then": {
+            "escalate": true,
+            "escalation_reason": "Multiple agronomic risks detected"
+          }
+        }
+      ]
+    }
+
+  ]
+}

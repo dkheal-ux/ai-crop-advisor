@@ -1,0 +1,47 @@
+import streamlit as st
+from expert_system import evaluate_rules
+
+st.title("🌾 AI Crop Advisor")
+
+# Inputs
+region = st.selectbox("Region", ["dark_brown", "black"])
+soil_texture = st.selectbox("Soil Texture", ["loam", "clay", "sand"])
+organic_matter = st.slider("Organic Matter (%)", 1.0, 6.0, 3.0)
+soil_ph = st.number_input("Soil pH", 4.5, 9.0, 6.5)
+
+nitrogen = st.number_input("Nitrogen (ppm)", 0, 150, 30)
+phosphorus = st.number_input("Phosphorus (ppm)", 0, 50, 20)
+potassium = st.number_input("Potassium (ppm)", 0, 300, 180)
+
+rain = st.number_input("Rainfall (mm)", 0, 400, 200)
+temp = st.number_input("Temperature (°C)", 5, 30, 18)
+
+previous_crop = st.selectbox("Previous Crop", ["wheat", "canola", "barley", "peas"])
+
+inputs = {
+    "region": region,
+    "soil_texture": soil_texture,
+    "organic_matter": organic_matter,
+    "soil_ph": soil_ph,
+    "nitrogen": nitrogen,
+    "phosphorus": phosphorus,
+    "potassium": potassium,
+    "growing_season_rain": rain,
+    "avg_temp": temp,
+    "previous_crop": previous_crop
+}
+
+if st.button("Get Recommendation"):
+    ranked, risks, flags = evaluate_rules(inputs)
+
+    st.subheader("📊 Recommendations")
+
+    for crop, score in ranked:
+        st.write(f"**{crop.capitalize()}** — Score: {score}")
+        for r in risks[crop]:
+            st.write(f"- ⚠ {r}")
+
+    if flags:
+        st.subheader("⚠ Advisory")
+        for f in flags:
+            st.write(f"- {f}")
